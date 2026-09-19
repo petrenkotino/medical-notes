@@ -1,4 +1,4 @@
-# Task 04: API Routes
+# Task 04: API Routes ✓ DONE
 
 Implement the three required endpoints with Fastify JSON schemas and audit logging.
 

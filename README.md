@@ -22,9 +22,9 @@ cp .env.example .env
 
 ```bash
 # Start PostgreSQL
-docker-compose up -d
+docker compose up -d
 
-# Start the API (watches for changes)
+# Start the API (watches for changes, loads .env automatically)
 pnpm dev
 ```
 
@@ -36,6 +36,43 @@ Health check:
 curl http://localhost:3000/health
 # {"status":"ok"}
 ```
+
+## API
+
+All endpoints require the `X-Actor-Id` header (identifies who is performing the action for audit logging).
+
+### POST /medical-note
+
+```bash
+curl -X POST http://localhost:3000/medical-note \
+  -H "Content-Type: application/json" \
+  -H "X-Actor-Id: user-123" \
+  -d '{"patientId": "patient-abc", "authorId": "dr-xyz", "text": "Patient presents with..."}'
+```
+
+### GET /medical-note/:id
+
+```bash
+curl http://localhost:3000/medical-note/<id> \
+  -H "X-Actor-Id: user-123"
+```
+
+### PUT /medical-note/:id
+
+Updates create a new version — notes are never modified in place.
+
+```bash
+curl -X PUT http://localhost:3000/medical-note/<id> \
+  -H "Content-Type: application/json" \
+  -H "X-Actor-Id: user-123" \
+  -d '{"text": "Updated note text..."}'
+```
+
+## Data model
+
+- `medical_notes` is append-only and versioned. Each PUT creates a new row with `version + 1`.
+- `audit_log` records every create, update, and read with the actor and timestamp.
+- Every request performs 2 sequential DB round-trips: the note operation + the audit insert.
 
 ## Scripts
 
