@@ -1,11 +1,11 @@
-# Task 03: Docker + Database
+# Task 03: Docker + Database ✓ DONE
 
 Wire up PostgreSQL locally and call `runMigration()` on server startup.
 
 Note: `src/db/pool.ts` (pool + `runMigration()`) was completed in Task 02.
 
 ## Files to create/modify
-- `docker-compose.yml` — PostgreSQL 16, named volume for persistence, exposes 5432
+- `docker-compose.yml` — PostgreSQL 17, named volume for persistence, exposes 5432
 - `src/index.ts` — call `await runMigration()` before `app.listen()`
 
 ## docker-compose approach
