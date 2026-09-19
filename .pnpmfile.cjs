@@ -1,0 +1,1 @@
+// Allow esbuild build scripts
