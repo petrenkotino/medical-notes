@@ -9,12 +9,6 @@ CREATE TABLE IF NOT EXISTS medical_notes (
   PRIMARY KEY (id, version)
 );
 
--- Index for fetching the latest version of a note
-CREATE INDEX IF NOT EXISTS idx_medical_notes_id_version ON medical_notes (id, version DESC);
-
--- Index for listing notes by patient
-CREATE INDEX IF NOT EXISTS idx_medical_notes_patient_id ON medical_notes (patient_id);
-
 -- Audit log: append-only, never deleted
 CREATE TABLE IF NOT EXISTS audit_log (
   id            UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
