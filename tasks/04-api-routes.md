@@ -23,9 +23,9 @@ All endpoints require `X-Actor-Id` header. Return 400 if missing.
 
 ## Notes
 - Fastify JSON schemas on request + response bodies enable `fast-json-stringify`
-- 404 returns `{ error: 'Not found' }`
-- Invalid UUID format caught by postgres → 400
-- `logAudit` is awaited — if audit insert fails, endpoint returns 500 (audit is a guarantee)
+- UUID validated in params schema via regex pattern before hitting the DB
+- 404 → `NoteNotFoundError`, 409 → `NoteConflictError` (concurrent PUT on same note)
+- Audit is fire-and-forget: `.catch(err => request.log.error(...))` — not transactionally guaranteed. If audit fails, the note operation still returns success.
 
 ## Files to create/modify
 - `src/routes/medical-notes.ts` — route plugin with all three handlers

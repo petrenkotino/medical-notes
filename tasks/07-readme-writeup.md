@@ -1,17 +1,13 @@
-# Task 07: README + Write-Up
+# Task 07: Improve + Retest
 
-Final README covering all submission requirements.
+Identify one bottleneck from Task 06 results, implement a concrete fix, rerun the identical test.
 
-## Sections
-1. Prerequisites (Docker, Node 20+, pnpm, k6)
-2. How to start the service (docker-compose + pnpm dev)
-3. How to call the API (curl examples for all 3 endpoints)
-4. Load test instructions (how to run baseline and improved)
-5. Results table (before/after metrics)
-6. Write-up:
-   - What the API can handle before degrading
-   - Key stats
-   - Next 3-5 improvements (connection pool tuning, read replica, Redis cache, rate limiting, OpenTelemetry)
+## Process
+1. Pick the bottleneck most clearly supported by the data (latency spike, throughput plateau, error pattern, CPU/memory)
+2. Implement the smallest change that addresses it
+3. Reset DB to identical starting state (reseed same notes)
+4. Rerun the exact same k6 script
+5. Record before/after side by side at each VU step
 
 ## Done when
-Someone can clone the repo, follow the README, and reproduce results.
+Before/after comparison is documented with the bottleneck clearly justified by Task 06 evidence.

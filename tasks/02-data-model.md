@@ -49,5 +49,10 @@ CREATE INDEX IF NOT EXISTS idx_audit_log_occurred_at ON audit_log (occurred_at);
 
 ## Key invariants
 - `medical_notes` and `audit_log` are append-only — no UPDATE or DELETE
-- Every API operation produces an awaited audit entry
+- Audit logging is best-effort (fire-and-forget with error logging) — not transactionally guaranteed
+- Concurrent PUTs to the same note id may race on the PK; caught as `NoteConflictError` → 409
 - `details` typed as `Record<string, string | number | boolean | null>` to satisfy postgres.js's JSONValue
+
+## Indexes removed (auditor feedback)
+- `idx_medical_notes_id_version (id, version DESC)` — redundant with the PK B-tree index
+- `idx_medical_notes_patient_id` — unused by any required endpoint

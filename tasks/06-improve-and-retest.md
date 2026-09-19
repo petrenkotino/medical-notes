@@ -1,23 +1,32 @@
-# Task 06: Improve + Retest
+# Task 06: Load Test (Stepped Baseline)
 
-Apply the bottleneck fix and compare results.
+Run a capacity-finding load test with default settings. Let results identify the bottleneck.
 
-## The improvement
-Change `DB_POOL_MAX=1` → `DB_POOL_MAX=10` (no code change, just config).
+## k6 script design
+- Scenario mix: 70% GET, 20% POST, 10% PUT (note: GETs fire a background audit write — nominally read-heavy but actually write-heavy)
+- Pre-seed ~50 notes at script setup for GET/PUT targets
+- Per-endpoint tagging so latency and errors are broken down by route
+- Correctness checks via k6 `check()` on response status and body shape
+- Stepped stages: 10 → 25 → 50 → 100 → 200 VUs, 30s each
+- Degradation thresholds: p95 > 500ms OR error rate > 1% OR throughput plateau
 
-**Why this works**: With pool=1, all concurrent requests queue for the single DB connection.
-With pool=10, up to 10 DB queries run in parallel → throughput scales with concurrency.
+## Files to create
+- `load-tests/k6.js`
 
-## Improved run
+## What to measure
+- Throughput (req/s) at each VU step
+- p50/p95/p99 latency per endpoint
+- Error rate (total + breakdown: 409 conflict vs 5xx)
+- 409 rate on PUTs (expected under concurrency — measure separately)
+- CPU and memory: `docker stats` in a separate terminal during the run
+- Note the VU level where p95 first exceeds 500ms or errors appear — that's the capacity ceiling
+
+## Run
 ```bash
-DB_POOL_MAX=10 pnpm dev
+# Default pool (10), fresh DB state
+pnpm dev
 k6 run load-tests/k6.js
 ```
 
-## Expected outcome
-- Throughput: 3-5x higher req/s
-- p99 latency: significant drop
-- Error rate: near 0%
-
 ## Done when
-Before/after numbers are documented side by side.
+Stepped results are recorded and the bottleneck is identified from evidence.
