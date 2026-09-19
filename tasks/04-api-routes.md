@@ -1,28 +1,35 @@
 # Task 04: API Routes
 
-Implement the three required endpoints with Fastify JSON schemas.
+Implement the three required endpoints with Fastify JSON schemas and audit logging.
+
+## Auth
+All endpoints require `X-Actor-Id` header. Return 400 if missing.
 
 ## Endpoints
 
 ### POST /medical-note
-- Body: `{ patient_id, author_id, text }`
-- Returns: created note (201)
+- Body: `{ patientId, authorId, text }` (camelCase — matches postgres.camel transform)
+- Calls: `createNote()` → `logAudit(id, 'created', actorId, { version: 1 })`
+- Returns: 201 + created note
 
 ### GET /medical-note/:id
-- Returns: note or 404
+- Calls: `getLatestNote(id)` → `logAudit(id, 'accessed', actorId, { version })`
+- Returns: 200 + note, or 404
 
 ### PUT /medical-note/:id
-- Body: `{ patient_id?, author_id?, text? }` (partial update)
-- Returns: updated note or 404
+- Body: `{ text }` — append-only model; only text changes in a revision. `authorId` comes from `X-Actor-Id`.
+- Calls: `createNoteVersion(id, actorId, text)` → `logAudit(id, 'updated', actorId, { version })`
+- Returns: 200 + new version, or 404
 
 ## Notes
-- Fastify JSON schemas on both request and response enable `fast-json-stringify` (faster than `JSON.stringify`)
-- 404 returns `{ error: "Not found" }`
-- Invalid UUID format → 400
+- Fastify JSON schemas on request + response bodies enable `fast-json-stringify`
+- 404 returns `{ error: 'Not found' }`
+- Invalid UUID format caught by postgres → 400
+- `logAudit` is awaited — if audit insert fails, endpoint returns 500 (audit is a guarantee)
 
 ## Files to create/modify
 - `src/routes/medical-notes.ts` — route plugin with all three handlers
-- `src/index.ts` — register the route plugin
+- `src/index.ts` — register the route plugin (runMigration already wired in Task 03)
 
 ## Done when
-All three endpoints work correctly via curl.
+All three endpoints work correctly via curl, including audit rows written to DB.
