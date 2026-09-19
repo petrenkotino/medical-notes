@@ -4,7 +4,11 @@ import {
   getLatestNote,
   createNoteVersion,
   logAudit,
+  NoteNotFoundError,
+  NoteConflictError,
 } from '../db/queries.js'
+
+const UUID_PATTERN = '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
 
 const noteSchema = {
   type: 'object',
@@ -46,7 +50,8 @@ export async function medicalNotesRoutes(app: FastifyInstance) {
 
       const { patientId, authorId, text } = request.body
       const note = await createNote(patientId, authorId, text)
-      await logAudit(note.id, 'created', actorId, { version: note.version })
+      logAudit(note.id, 'created', actorId, { version: note.version })
+        .catch(err => request.log.error({ err }, 'audit log failed'))
 
       return reply.code(201).send(note)
     },
@@ -57,6 +62,11 @@ export async function medicalNotesRoutes(app: FastifyInstance) {
     '/medical-note/:id',
     {
       schema: {
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: { id: { type: 'string', pattern: UUID_PATTERN } },
+        },
         response: { 200: noteSchema },
       },
     },
@@ -69,7 +79,8 @@ export async function medicalNotesRoutes(app: FastifyInstance) {
       const note = await getLatestNote(request.params.id)
       if (!note) return reply.notFound()
 
-      await logAudit(note.id, 'accessed', actorId, { version: note.version })
+      logAudit(note.id, 'accessed', actorId, { version: note.version })
+        .catch(err => request.log.error({ err }, 'audit log failed'))
 
       return note
     },
@@ -83,6 +94,11 @@ export async function medicalNotesRoutes(app: FastifyInstance) {
     '/medical-note/:id',
     {
       schema: {
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: { id: { type: 'string', pattern: UUID_PATTERN } },
+        },
         body: {
           type: 'object',
           required: ['text'],
@@ -105,12 +121,12 @@ export async function medicalNotesRoutes(app: FastifyInstance) {
           actorId,
           request.body.text,
         )
-        await logAudit(note.id, 'updated', actorId, { version: note.version })
+        logAudit(note.id, 'updated', actorId, { version: note.version })
+          .catch(err => request.log.error({ err }, 'audit log failed'))
         return note
       } catch (err) {
-        if (err instanceof Error && err.message.includes('not found')) {
-          return reply.notFound()
-        }
+        if (err instanceof NoteNotFoundError) return reply.notFound()
+        if (err instanceof NoteConflictError) return reply.conflict(err.message)
         throw err
       }
     },
