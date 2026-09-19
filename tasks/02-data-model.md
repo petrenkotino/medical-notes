@@ -1,28 +1,53 @@
-# Task 02: Data Model
+# Task 02: Data Model ✓ DONE
 
-Define the `medical_notes` table schema and TypeScript types.
+Immutable, append-only EHR data model with full audit logging.
 
-## Suggested schema (open for discussion)
+## Schema
+
 ```sql
-CREATE TABLE medical_notes (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  patient_id  UUID NOT NULL,
-  author_id   UUID NOT NULL,
-  text        TEXT NOT NULL,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+-- medical_notes: append-only, versioned. No UPDATE or DELETE ever.
+CREATE TABLE IF NOT EXISTS medical_notes (
+  id            UUID NOT NULL DEFAULT gen_random_uuid(),
+  patient_id    TEXT NOT NULL,
+  author_id     TEXT NOT NULL,
+  text          TEXT NOT NULL,
+  version       INT NOT NULL DEFAULT 1,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (id, version)
 );
+CREATE INDEX IF NOT EXISTS idx_medical_notes_id_version ON medical_notes (id, version DESC);
+CREATE INDEX IF NOT EXISTS idx_medical_notes_patient_id ON medical_notes (patient_id);
+
+-- audit_log: append-only, never deleted
+CREATE TABLE IF NOT EXISTS audit_log (
+  id            UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  entity_id     UUID NOT NULL,
+  entity_type   TEXT NOT NULL DEFAULT 'medical_note',
+  action        TEXT NOT NULL CHECK (action IN ('created', 'updated', 'accessed')),
+  actor_id      TEXT NOT NULL,
+  occurred_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  details       JSONB
+);
+CREATE INDEX IF NOT EXISTS idx_audit_log_entity_id ON audit_log (entity_id);
+CREATE INDEX IF NOT EXISTS idx_audit_log_occurred_at ON audit_log (occurred_at);
 ```
 
-## Open questions for you
-- [ ] Should `id`, `patient_id`, `author_id` be UUIDs or something else (e.g. `TEXT`, `BIGSERIAL`)?
-- [ ] Is `text` the right column name? Any other fields needed (e.g. `title`, `note_type`, `status`)?
-- [ ] Any NOT NULL constraints or defaults to add/remove?
-- [ ] Index on `patient_id`? (useful if we later add `GET /medical-note?patient_id=...`)
+## DB module (`src/db/pool.ts`)
+- `sql` — postgres.js instance with `max: DB_POOL_MAX` (default 10, env-configurable for load test)
+- `transform: postgres.camel` — auto-maps snake_case columns to camelCase
+- `runMigration()` — reads and runs `001_create_tables.sql` via `sql.unsafe()` on startup
 
-## Files to create
-- `src/db/migrations/001_init.sql`
-- `src/types.ts` — TypeScript interface matching the schema
+## Queries (`src/db/queries.ts`)
+- `createNote(patientId, authorId, text)` — inserts version 1, returns full row
+- `getLatestNote(id)` — fetches highest version for id, returns null if not found
+- `createNoteVersion(id, authorId, text)` — CTE that reads max version and inserts version+1 atomically. PK constraint is concurrency safety net. Throws if note id doesn't exist.
+- `logAudit(entityId, action, actorId, details?)` — awaited in the request path (audit is a guarantee). Every create/update/read does 2 sequential DB round-trips.
 
-## Done when
-Migration SQL is agreed upon and types are defined.
+## Types (`src/types.ts`)
+- `MedicalNote` — `{ id, patientId, authorId, text, version, createdAt }`
+- `AuditEntry` — `{ id, entityId, entityType, action, actorId, occurredAt, details }`
+
+## Key invariants
+- `medical_notes` and `audit_log` are append-only — no UPDATE or DELETE
+- Every API operation produces an awaited audit entry
+- `details` typed as `Record<string, string | number | boolean | null>` to satisfy postgres.js's JSONValue
