@@ -70,9 +70,9 @@ curl -X PUT http://localhost:3000/medical-note/<id> \
 
 ## Data model
 
-- `medical_notes` is append-only and versioned. Each PUT creates a new row with `version + 1`.
-- `audit_log` records every create, update, and read with the actor and timestamp.
-- Every request performs 2 sequential DB round-trips: the note operation + the audit insert.
+- `medical_notes` is append-only and versioned. Each PUT creates a new row with `version + 1`. Each version's `created_at` is the authoritative timestamp for that revision.
+- `audit_log` records every create, update, and read. Audit inserts are best-effort (fire-and-forget) — if the insert fails, the note operation still succeeds and the failure is logged.
+- Concurrent PUTs to the same note id may race; one will succeed and others return 409. Clients should retry on 409.
 
 ## Scripts
 
