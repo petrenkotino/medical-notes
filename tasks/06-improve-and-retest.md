@@ -20,7 +20,16 @@ k6 run --env VUS=100 --env DURATION=60s load-tests/k6.js
 k6 run --env VUS=200 --env DURATION=60s load-tests/k6.js
 ```
 
-Each run: 15s ramp-up → 45s steady-state hold → results from hold period only (use `startTime` offset in summary or discard ramp metrics manually).
+Each run: 15s ramp-up → 45s steady-state hold.
+
+Warm-up strategy — run a separate unreported warm-up invocation first, then the measured run:
+```bash
+# Warm up (results discarded)
+k6 run --env VUS=10 --env DURATION=15s load-tests/k6.js > /dev/null 2>&1
+# Measured run
+k6 run --env VUS=10 --env DURATION=60s load-tests/k6.js
+```
+This ensures JIT compilation, connection pool fill, and OS TCP buffers are at steady state before measurement begins. Apply the same pattern for each VU level.
 
 Degradation definition: p95 > 500ms OR non-409 error rate > 1% OR throughput stops increasing vs previous level.
 
@@ -35,9 +44,15 @@ docker stats medical-notes-postgres-1 --format "table {{.CPUPerc}}\t{{.MemUsage}
 
 Terminal 2 — API process (native):
 ```bash
-# Run once per test, sample every 2s
-pid=$(pgrep -f "node.*dist/index\|tsx.*src/index"); \
-while true; do ps -o pid=,pcpu=,rss= -p $pid 2>/dev/null; sleep 2; done
+# Start the API, capture its PID directly — no pgrep needed
+node dist/index.js &
+api_pid=$!
+
+# Sample every 2s during the test
+while true; do ps -o pid=,pcpu=,rss= -p $api_pid 2>/dev/null || break; sleep 2; done
+
+# After testing, stop the server
+kill $api_pid
 ```
 
 Record peak CPU% and RSS for both during the steady-state window.

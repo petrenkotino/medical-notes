@@ -73,7 +73,7 @@ curl -X PUT http://localhost:3000/medical-note/<id> \
 ## Data model
 
 - `medical_notes` is append-only and versioned. Each PUT inserts a new row with `version + 1`. Each version's `created_at` is the authoritative timestamp for that revision.
-- Concurrent PUTs to the same note id may race on the primary key; one will succeed and others return 409. Clients should retry on 409.
+- Concurrent PUTs to the same note id may conflict on the `(id, version)` primary key. Any conflicting PUT returns 409. Clients should retry on 409.
 
 ## Scripts
 
