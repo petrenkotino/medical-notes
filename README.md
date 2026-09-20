@@ -75,6 +75,18 @@ curl -X PUT http://localhost:3000/medical-note/<id> \
 - `medical_notes` is append-only and versioned. Each PUT inserts a new row with `version + 1`. Each version's `created_at` is the authoritative timestamp for that revision.
 - Concurrent PUTs to the same note id may conflict on the `(id, version)` primary key. Any conflicting PUT returns 409. Clients should retry on 409.
 
+## Tests
+
+Correctness tests cover happy path, error cases, and concurrency. They run against a live server — start the API first, then:
+
+```bash
+pnpm test
+```
+
+The suite hits `GET /ready` (defaults to `http://localhost:3000`) and fails immediately if the server is not up. Set `BASE_URL` to point at a different host.
+
+Persistence is not automated — verified manually by restarting the server and re-fetching a previously created note.
+
 ## Scripts
 
 | Command | Description |
@@ -82,4 +94,5 @@ curl -X PUT http://localhost:3000/medical-note/<id> \
 | `pnpm dev` | Start dev server with hot reload |
 | `pnpm build` | Compile TypeScript to `dist/` |
 | `pnpm start` | Run compiled output |
+| `pnpm test` | Run correctness tests (server must be running) |
 
