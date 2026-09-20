@@ -9,7 +9,18 @@ const app = Fastify({ logger: true })
 app.register(sensible)
 app.register(medicalNotesRoutes)
 
+// Liveness — always 200 if the process is up
 app.get('/health', async () => ({ status: 'ok' }))
+
+// Readiness — 200 only when the DB is reachable
+app.get('/ready', async (_, reply) => {
+  try {
+    await sql`SELECT 1`
+    return { status: 'ok' }
+  } catch {
+    return reply.code(503).send({ status: 'unavailable' })
+  }
+})
 
 const start = async () => {
   try {
