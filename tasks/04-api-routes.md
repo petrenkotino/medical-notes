@@ -1,35 +1,31 @@
 # Task 04: API Routes ✓ DONE
 
-Implement the three required endpoints with Fastify JSON schemas and audit logging.
-
-## Auth
-All endpoints require `X-Actor-Id` header. Return 400 if missing.
+Implement the three required endpoints with Fastify JSON schemas.
 
 ## Endpoints
 
 ### POST /medical-note
 - Body: `{ patientId, authorId, text }` (camelCase — matches postgres.camel transform)
-- Calls: `createNote()` → `logAudit(id, 'created', actorId, { version: 1 })`
+- Calls: `createNote()`
 - Returns: 201 + created note
 
 ### GET /medical-note/:id
-- Calls: `getLatestNote(id)` → `logAudit(id, 'accessed', actorId, { version })`
+- Calls: `getLatestNote(id)`
 - Returns: 200 + note, or 404
 
 ### PUT /medical-note/:id
-- Body: `{ text }` — append-only model; only text changes in a revision. `authorId` comes from `X-Actor-Id`.
-- Calls: `createNoteVersion(id, actorId, text)` → `logAudit(id, 'updated', actorId, { version })`
+- Body: `{ authorId, text }` — append-only model; `authorId` identifies who wrote the revision
+- Calls: `createNoteVersion(id, authorId, text)`
 - Returns: 200 + new version, or 404
 
 ## Notes
 - Fastify JSON schemas on request + response bodies enable `fast-json-stringify`
 - UUID validated in params schema via regex pattern before hitting the DB
 - 404 → `NoteNotFoundError`, 409 → `NoteConflictError` (concurrent PUT on same note)
-- Audit is fire-and-forget: `.catch(err => request.log.error(...))` — not transactionally guaranteed. If audit fails, the note operation still returns success.
 
 ## Files to create/modify
 - `src/routes/medical-notes.ts` — route plugin with all three handlers
 - `src/index.ts` — register the route plugin (runMigration already wired in Task 03)
 
 ## Done when
-All three endpoints work correctly via curl, including audit rows written to DB.
+All three endpoints work correctly via curl.

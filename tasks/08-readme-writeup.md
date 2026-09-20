@@ -12,7 +12,6 @@ Final README covering all submission requirements.
    - Capacity ceiling observed (VU level where degradation began)
    - Key stats from both runs
    - Next 3-5 improvements — justified by what the results actually showed, not generic suggestions
-   - Note on audit logging: best-effort, not transactionally guaranteed
    - Note on timestamp semantics: each version's `created_at` is the authoritative revision timestamp
 
 ## Done when

@@ -3,7 +3,7 @@
 Run a capacity-finding load test with default settings. Let results identify the bottleneck.
 
 ## k6 script design
-- Scenario mix: 70% GET, 20% POST, 10% PUT (note: GETs fire a background audit write — nominally read-heavy but actually write-heavy)
+- Scenario mix: 70% GET, 20% POST, 10% PUT 
 - Pre-seed ~50 notes at script setup for GET/PUT targets
 - Per-endpoint tagging so latency and errors are broken down by route
 - Correctness checks via k6 `check()` on response status and body shape

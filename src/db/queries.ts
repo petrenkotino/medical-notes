@@ -1,5 +1,5 @@
 import { sql } from './pool.js'
-import type { MedicalNote, AuditEntry } from '../types.js'
+import type { MedicalNote } from '../types.js'
 
 export class NoteNotFoundError extends Error {
   constructor(id: string) {
@@ -73,14 +73,3 @@ function isPostgresError(err: unknown): err is { code: string } {
   return typeof err === 'object' && err !== null && 'code' in err
 }
 
-export async function logAudit(
-  entityId: string,
-  action: AuditEntry['action'],
-  actorId: string,
-  details?: Record<string, string | number | boolean | null>,
-): Promise<void> {
-  await sql`
-    INSERT INTO audit_log (entity_id, action, actor_id, details)
-    VALUES (${entityId}::uuid, ${action}, ${actorId}, ${details ? sql.json(details) : null})
-  `
-}

@@ -3,7 +3,6 @@ import {
   createNote,
   getLatestNote,
   createNoteVersion,
-  logAudit,
   NoteNotFoundError,
   NoteConflictError,
 } from '../db/queries.js'
@@ -17,7 +16,7 @@ const noteSchema = {
     patientId: { type: 'string' },
     authorId: { type: 'string' },
     text: { type: 'string' },
-    version: { type: 'number' },
+    version: { type: 'integer' },
     createdAt: { type: 'string' },
   },
 } as const
@@ -33,26 +32,19 @@ export async function medicalNotesRoutes(app: FastifyInstance) {
         body: {
           type: 'object',
           required: ['patientId', 'authorId', 'text'],
+          additionalProperties: false,
           properties: {
-            patientId: { type: 'string' },
-            authorId: { type: 'string' },
-            text: { type: 'string' },
+            patientId: { type: 'string', minLength: 1, maxLength: 255 },
+            authorId: { type: 'string', minLength: 1, maxLength: 255 },
+            text: { type: 'string', minLength: 1, maxLength: 10000 },
           },
         },
         response: { 201: noteSchema },
       },
     },
     async (request, reply) => {
-      const actorId = request.headers['x-actor-id']
-      if (!actorId || typeof actorId !== 'string') {
-        return reply.badRequest('X-Actor-Id header is required')
-      }
-
       const { patientId, authorId, text } = request.body
       const note = await createNote(patientId, authorId, text)
-      logAudit(note.id, 'created', actorId, { version: note.version })
-        .catch(err => request.log.error({ err }, 'audit log failed'))
-
       return reply.code(201).send(note)
     },
   )
@@ -70,18 +62,9 @@ export async function medicalNotesRoutes(app: FastifyInstance) {
         response: { 200: noteSchema },
       },
     },
-    async (request, reply) => {
-      const actorId = request.headers['x-actor-id']
-      if (!actorId || typeof actorId !== 'string') {
-        return reply.badRequest('X-Actor-Id header is required')
-      }
-
-      const note = await getLatestNote(request.params.id)
+    async (_, reply) => {
+      const note = await getLatestNote(_.params.id)
       if (!note) return reply.notFound()
-
-      logAudit(note.id, 'accessed', actorId, { version: note.version })
-        .catch(err => request.log.error({ err }, 'audit log failed'))
-
       return note
     },
   )
@@ -89,7 +72,7 @@ export async function medicalNotesRoutes(app: FastifyInstance) {
   // PUT /medical-note/:id
   app.put<{
     Params: { id: string }
-    Body: { text: string }
+    Body: { authorId: string; text: string }
   }>(
     '/medical-note/:id',
     {
@@ -101,28 +84,23 @@ export async function medicalNotesRoutes(app: FastifyInstance) {
         },
         body: {
           type: 'object',
-          required: ['text'],
+          required: ['authorId', 'text'],
+          additionalProperties: false,
           properties: {
-            text: { type: 'string' },
+            authorId: { type: 'string', minLength: 1, maxLength: 255 },
+            text: { type: 'string', minLength: 1, maxLength: 10000 },
           },
         },
         response: { 200: noteSchema },
       },
     },
     async (request, reply) => {
-      const actorId = request.headers['x-actor-id']
-      if (!actorId || typeof actorId !== 'string') {
-        return reply.badRequest('X-Actor-Id header is required')
-      }
-
       try {
         const note = await createNoteVersion(
           request.params.id,
-          actorId,
+          request.body.authorId,
           request.body.text,
         )
-        logAudit(note.id, 'updated', actorId, { version: note.version })
-          .catch(err => request.log.error({ err }, 'audit log failed'))
         return note
       } catch (err) {
         if (err instanceof NoteNotFoundError) return reply.notFound()
