@@ -32,11 +32,16 @@ docker compose up -d postgres
 pnpm dev
 ```
 
-Health check:
+## Health endpoints
+
+| Endpoint | Purpose | DB check |
+|---|---|---|
+| `GET /health` | Liveness — is the process up? | No |
+| `GET /ready` | Readiness — is the DB reachable? | Yes (`SELECT 1`) |
 
 ```bash
-curl http://localhost:3000/health
-# {"status":"ok"}
+curl http://localhost:3000/health  # {"status":"ok"}
+curl http://localhost:3000/ready   # {"status":"ok"} or 503
 ```
 
 ## API

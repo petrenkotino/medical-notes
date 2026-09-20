@@ -11,6 +11,7 @@ const UUID_PATTERN = '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 
 const noteSchema = {
   type: 'object',
+  required: ['id', 'patientId', 'authorId', 'text', 'version', 'createdAt'],
   properties: {
     id: { type: 'string' },
     patientId: { type: 'string' },

@@ -21,8 +21,9 @@ Verify the API works correctly before load testing — happy paths, error cases,
 
 ### Concurrency (concurrent PUTs)
 - Fire 5 simultaneous PUTs at the same note id
-- Expect: exactly 1 succeeds (200), others return 409
-- Verify no duplicate versions in DB
+- Assert: all responses are 200 or 409 — no 500s
+- Assert: successful updates have unique, consecutive versions (no gaps, no duplicates)
+- Assert: 200 count + 409 count = 5
 
 ## Method
 Manual curl or a small script — no test framework required for this task.
