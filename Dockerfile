@@ -5,8 +5,6 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm build
-# tsc doesn't copy non-TS files — copy SQL migrations manually
-RUN cp -r src/db/migrations dist/db/migrations
 
 FROM node:24-alpine AS production
 RUN corepack enable pnpm
