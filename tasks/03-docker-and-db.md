@@ -14,7 +14,7 @@ No initdb.d mount needed — `runMigration()` runs the SQL on every startup (ide
 ```yaml
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     environment:
       POSTGRES_DB: medical_notes
       POSTGRES_USER: postgres

@@ -14,7 +14,7 @@ Verify the API works correctly before load testing — happy paths, error cases,
 - GET with invalid UUID format → 400 (caught by schema, no DB hit)
 - GET with valid UUID but no note → 404
 - PUT on non-existent id → 404
-- Missing `X-Actor-Id` header → 400
+- PUT with empty `text` or `authorId` → 400
 
 ### Persistence
 - Start server, POST a note, restart server (`Ctrl+C` + `pnpm dev`), GET same id → still returns note
