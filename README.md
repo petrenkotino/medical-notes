@@ -4,31 +4,33 @@ EHR-style medical notes CRUD API built with Fastify, TypeScript, and PostgreSQL.
 
 ## Prerequisites
 
-- Node.js >= 24
-- pnpm
-- Docker (for PostgreSQL)
+- Docker
 
-## Setup
+That's it to try the API. For development or load testing you also need Node.js >= 24 and pnpm.
+
+## Run with Docker (quickest)
 
 ```bash
-# 1. Install dependencies
+docker compose up -d
+```
+
+Starts both PostgreSQL and the API. Available at `http://localhost:3000`.
+
+## Run for development / load testing
+
+Running the app natively avoids Docker networking overhead, which matters for accurate load test measurements.
+
+```bash
+# First time only
+cp .env.example .env
 pnpm install
 
-# 2. Copy env file and adjust if needed
-cp .env.example .env
-```
-
-## Run locally
-
-```bash
 # Start PostgreSQL
-docker compose up -d
+docker compose up -d postgres
 
-# Start the API (watches for changes, loads .env automatically)
+# Start the API with hot reload
 pnpm dev
 ```
-
-The API is available at `http://localhost:3000`.
 
 Health check:
 
