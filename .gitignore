@@ -1,3 +1,6 @@
 node_modules/
 dist/
 .env
+api-stats.log
+load-tests/results/
+load-tests/k6-summaries/
