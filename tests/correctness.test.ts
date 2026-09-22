@@ -149,9 +149,3 @@ describe('concurrency: 5 simultaneous PUTs on the same note', () => {
     console.log(`    statuses: ${statuses.join(' ')} | winning versions: ${versions.join(' ')}`)
   })
 })
-
-// ─── Persistence (manual) ─────────────────────────────────────────────────────
-// Not covered by this suite. Verified manually:
-//   1. POST a note, record its id
-//   2. Restart the server (Ctrl+C + node dist/index.js)
-//   3. GET /medical-note/<id> — note and version survive the restart
