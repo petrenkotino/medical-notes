@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Medical Notes API — Case Presentation</title>
+  <style>
+    :root {
+      --ink: #14233b;
+      --muted: #5c6b7a;
+      --paper: #f7f8f5;
+      --panel: #ffffff;
+      --teal: #087f73;
+      --teal2: #39a99a;
+      --mint: #dff3ed;
+      --coral: #e36a54;
+      --amber: #d9a441;
+      --grid: #dce4e3;
+      --dark: #0e2430;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; background: #10171d; font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--ink); }
+    body { overflow: hidden; }
+    .deck { width: 100%; height: 100%; }
+    .slide {
+      position: absolute; inset: 0; display: none; overflow: hidden;
+      width: 100vw; height: 56.25vw; max-height: 100vh; max-width: 177.7778vh;
+      margin: auto; padding: 5.2vh 6.8vw; background: var(--paper);
+    }
+    .slide.active { display: flex; flex-direction: column; }
+    .slide::after { content: attr(data-n); position: absolute; right: 2.2vw; bottom: 1.6vh; font-size: 1.35vh; color: #8b969d; }
+    .eyebrow { text-transform: uppercase; letter-spacing: .16em; font-size: 1.5vh; font-weight: 750; color: var(--teal); margin-bottom: 1.2vh; }
+    h1 { font-size: 5.2vh; line-height: 1.06; letter-spacing: -.035em; margin: 0; max-width: 82%; }
+    h2 { font-size: 3.8vh; line-height: 1.08; letter-spacing: -.028em; margin: 0 0 3vh; }
+    h3 { font-size: 2.1vh; line-height: 1.2; margin: 0 0 1.1vh; }
+    p, li { font-size: 1.85vh; line-height: 1.45; }
+    p { margin: .45vh 0 1.2vh; }
+    ul { margin: .5vh 0; padding-left: 1.25em; }
+    li { margin: .55vh 0; }
+    strong { font-weight: 760; }
+    .sub { margin-top: 2vh; color: var(--muted); font-size: 2.1vh; max-width: 72%; }
+    .small { color: var(--muted); font-size: 1.5vh; line-height: 1.4; }
+    .tiny { color: var(--muted); font-size: 1.25vh; line-height: 1.35; }
+    .accent { color: var(--teal); }
+    .coral { color: var(--coral); }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 2.4vw; flex: 1; min-height: 0; }
+    .two.wide-left { grid-template-columns: 1.25fr .75fr; }
+    .three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.45vw; }
+    .cards { align-items: stretch; }
+    .card { background: var(--panel); border: 1px solid #e2e7e4; border-radius: 1.2vh; padding: 2.2vh 1.6vw; box-shadow: 0 .45vh 1.4vh rgba(16,35,48,.055); }
+    .card.teal { border-top: .55vh solid var(--teal); }
+    .card.coral { border-top: .55vh solid var(--coral); }
+    .card.amber { border-top: .55vh solid var(--amber); }
+    .big-number { font-size: 4.2vh; line-height: 1; font-weight: 780; letter-spacing: -.04em; color: var(--teal); margin-bottom: .7vh; }
+    .label { font-size: 1.4vh; color: var(--muted); }
+    .callout { background: var(--mint); border-left: .55vh solid var(--teal); border-radius: .8vh; padding: 1.5vh 1.3vw; font-size: 1.8vh; line-height: 1.38; }
+    .warning { background: #fff0eb; border-left-color: var(--coral); }
+    .flow { display: flex; align-items: center; justify-content: center; gap: 1.2vw; margin-top: 4.5vh; }
+    .node { background: #fff; border: 2px solid #cddbd7; border-radius: 1.2vh; padding: 2vh 1.5vw; text-align: center; min-width: 13vw; }
+    .node.primary { color: white; background: var(--teal); border-color: var(--teal); }
+    .arrow { color: var(--teal); font-size: 3.3vh; font-weight: 700; }
+    .pill { display: inline-block; border-radius: 10vh; padding: .5vh .75vw; background: var(--mint); color: #086c63; font-size: 1.3vh; font-weight: 700; margin-right: .35vw; }
+    .metric-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1vw; margin: 1.5vh 0 2.4vh; }
+    table { width: 100%; border-collapse: collapse; font-size: 1.45vh; background: white; border-radius: .8vh; overflow: hidden; }
+    th { text-align: left; color: var(--muted); font-weight: 680; border-bottom: 2px solid var(--grid); padding: .8vh .65vw; }
+    td { border-bottom: 1px solid #e6ebea; padding: .78vh .65vw; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    tr.highlight td { background: var(--mint); font-weight: 700; }
+    .chart { background: white; border: 1px solid #e2e7e4; border-radius: 1vh; padding: 1.1vh .7vw .5vh; }
+    .chart-title { font-size: 1.45vh; font-weight: 720; margin-left: .35vw; color: var(--ink); }
+    svg text { font-family: Inter, ui-sans-serif, -apple-system, sans-serif; fill: var(--muted); font-size: 11px; }
+    .quote { font-size: 3.2vh; line-height: 1.25; letter-spacing: -.02em; max-width: 86%; }
+    .title-slide { background: var(--dark); color: white; justify-content: center; }
+    .title-slide::before { content: ""; position: absolute; width: 46vw; height: 46vw; border-radius: 50%; background: radial-gradient(circle, rgba(57,169,154,.28), rgba(57,169,154,0) 68%); right: -10vw; top: -15vw; }
+    .title-slide::after { color: rgba(255,255,255,.45); }
+    .title-slide .eyebrow { color: #70d6c7; }
+    .title-slide h1 { font-size: 7vh; max-width: 75%; }
+    .title-slide .sub { color: #b9c9cd; }
+    .title-rule { width: 8vw; height: .6vh; border-radius: 1vh; background: var(--teal2); margin: 3vh 0 1vh; }
+    .footer-note { position: absolute; left: 6.8vw; bottom: 2vh; color: #8a969e; font-size: 1.15vh; }
+    .step-list { counter-reset: item; list-style: none; padding: 0; margin: 0; }
+    .step-list li { counter-increment: item; display: grid; grid-template-columns: 2.3vw 1fr; gap: .8vw; align-items: start; margin: 1.05vh 0; }
+    .step-list li::before { content: counter(item); width: 2.1vw; height: 2.1vw; min-width: 2.1vw; border-radius: 50%; background: var(--teal); color: white; display: grid; place-items: center; font-weight: 750; font-size: 1.3vh; }
+    .good { color: var(--teal); font-weight: 730; }
+    .bad { color: var(--coral); font-weight: 730; }
+    #progress { position: fixed; z-index: 99; left: 0; bottom: 0; height: 4px; background: var(--teal2); transition: width .2s ease; }
+    #help { position: fixed; z-index: 100; right: 16px; top: 12px; color: rgba(255,255,255,.6); font-size: 12px; }
+    .appendix { background: #f1f4f2; }
+    @media print {
+      @page { size: 13.333in 7.5in; margin: 0; }
+      html, body { width: auto; height: auto; background: white; overflow: visible; }
+      .deck { width: auto; height: auto; }
+      .slide, .slide.active { position: relative; display: flex; flex-direction: column; width: 13.333in; height: 7.5in; max-width: none; max-height: none; page-break-after: always; break-after: page; padding: .48in .7in; }
+      #progress, #help { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div id="help">← → navigate · F fullscreen</div>
+<div id="progress"></div>
+<main class="deck">
+  <section class="slide title-slide active" data-n="1">
+    <div class="eyebrow">Tandem Health · Platform take-home</div>
+    <h1>Medical Notes API</h1>
+    <div class="title-rule"></div>
+    <div class="quote">Design, load testing, and one improvement</div>
+    <p class="sub">Node.js, TypeScript, Fastify, and PostgreSQL</p>
+    <div class="footer-note">Tino Petrenko · September 2026</div>
+  </section>
+
+  <section class="slide" data-n="2">
+    <div class="eyebrow">Application overview</div>
+    <h2>What I built</h2>
+    <div class="three cards" style="margin-top:2vh">
+      <div class="card teal"><h3>API</h3><p>Node.js 24, TypeScript, and Fastify. Three endpoints to create, read, and update medical notes.</p></div>
+      <div class="card teal"><h3>Database</h3><p>PostgreSQL 17 through Postgres.js. Note history is stored as immutable versions.</p></div>
+      <div class="card teal"><h3>Local setup</h3><p>Docker Compose, persistent database volume, request schemas, health, and readiness endpoints.</p></div>
+    </div>
+    <div class="callout" style="margin-top:3vh">For the load tests the API ran directly on the host for easier resource sampling. PostgreSQL remained in Docker, so this was still a mixed host/container setup.</div>
+  </section>
+
+  <section class="slide" data-n="3">
+    <div class="eyebrow">Data model</div>
+    <h2>Note versions and concurrent updates</h2>
+    <div class="two wide-left">
+      <div>
+        <div class="card" style="margin-bottom:1.5vh">
+          <div class="mono" style="font-size:1.65vh">PRIMARY KEY (id, version)</div>
+          <p class="small">Every edit is a new row. PUT reads the current version and inserts the next one in a single statement.</p>
+        </div>
+        <div class="flow" style="justify-content:flex-start;margin-top:2vh">
+          <div class="node"><strong>Writer A</strong><br><span class="small">next = 5</span></div>
+          <div class="node"><strong>Writer B</strong><br><span class="small">next = 5</span></div>
+          <div class="arrow">→</div>
+          <div class="node primary"><strong>one 200</strong><br><span style="opacity:.8">one 409</span></div>
+        </div>
+      </div>
+      <div>
+        <h3>Current behavior</h3>
+        <ul><li>No duplicate persisted versions</li><li>No silent overwrite</li><li>Complete revision history</li><li>Works across Node processes</li></ul>
+        <div class="callout warning" style="margin-top:2vh">This keeps the stored data consistent. A real product still has to decide whether a stale edit should be rejected, retried, or serialized.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" data-n="4">
+    <div class="eyebrow">Correctness</div>
+    <h2>What I tested before running load</h2>
+    <div class="two" style="align-items:start;flex:none">
+      <div class="card teal">
+        <h3>Acceptance tests</h3>
+        <ul><li><span class="mono">POST → GET → PUT → GET</span></li><li>Response fields and version increments</li><li>Invalid UUIDs and request bodies</li><li>Missing notes</li></ul>
+      </div>
+      <div class="card">
+        <h3>Concurrent updates</h3>
+        <ul><li>Five updates sent to the same note</li><li>Successful writes have unique versions</li><li>Conflicting writes return <span class="mono">409</span></li><li>No unexpected <span class="mono">500</span> responses</li></ul>
+      </div>
+    </div>
+    <p style="margin-top:3vh">I also checked manually that a note survives a service restart.</p>
+  </section>
+
+  <section class="slide" data-n="5">
+    <div class="eyebrow">Load testing</div>
+    <h2>How the test works</h2>
+    <div class="two" style="align-items:start;flex:none">
+      <div class="card teal">
+        <h3>Workload</h3>
+        <div class="metric-row">
+          <div><div class="big-number">70%</div><div class="label">GET</div></div>
+          <div><div class="big-number">20%</div><div class="label">POST</div></div>
+          <div><div class="big-number">10%</div><div class="label">PUT</div></div>
+        </div>
+        <ul><li>50 seeded notes</li><li>15 s warm-up + 60 s measured</li><li>10, 25, 50, 100, 200 VUs</li><li>No think time</li></ul>
+      </div>
+      <div>
+        <h3>What I measured</h3>
+        <ul><li>Completed workload requests/s</li><li>p50 / p95 / p99 by operation</li><li>Unexpected failures and expected conflicts</li><li>API CPU and resident memory</li></ul>
+        <div class="callout" style="margin-top:2.5vh">This is a local saturation test, not a user simulation. Each VU sends another request as soon as the previous one finishes.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" data-n="6">
+    <div class="eyebrow">Baseline · one worker, pool 10</div>
+    <h2>Baseline results</h2>
+    <div class="two">
+      <div class="chart">
+        <div class="chart-title">Throughput (requests/s)</div>
+        <svg viewBox="0 0 520 280" width="100%" height="84%" aria-label="Baseline throughput chart">
+          <line x1="55" y1="230" x2="495" y2="230" stroke="#cfd9d7"/><line x1="55" y1="30" x2="55" y2="230" stroke="#cfd9d7"/>
+          <line x1="55" y1="80" x2="495" y2="80" stroke="#e8eeec"/><line x1="55" y1="155" x2="495" y2="155" stroke="#e8eeec"/>
+          <polyline points="70,56 170,84 275,150 385,177 485,188" fill="none" stroke="#087f73" stroke-width="5"/>
+          <g fill="#087f73"><circle cx="70" cy="56" r="6"/><circle cx="170" cy="84" r="6"/><circle cx="275" cy="150" r="6"/><circle cx="385" cy="177" r="6"/><circle cx="485" cy="188" r="6"/></g>
+          <text x="63" y="252">10</text><text x="163" y="252">25</text><text x="268" y="252">50</text><text x="375" y="252">100</text><text x="475" y="252">200</text>
+          <text x="8" y="84">8k</text><text x="8" y="159">5k</text><text x="8" y="234">2k</text>
+          <text x="78" y="48" fill="#14233b">8,708</text><text x="173" y="77" fill="#14233b">7,298</text><text x="278" y="143">4,396</text><text x="388" y="170">3,373</text><text x="443" y="181">2,860</text>
+        </svg>
+      </div>
+      <div>
+        <div class="metric-row">
+          <div class="card"><div class="big-number">25</div><div class="label">first observed degradation</div></div>
+          <div class="card"><div class="big-number">0%</div><div class="label">unexpected failures</div></div>
+          <div class="card"><div class="big-number">90 ms</div><div class="label">GET p95 at 200 VUs</div></div>
+        </div>
+        <p>Throughput peaked at the lowest tested level while latency rose from <strong>1.33 ms</strong> to <strong>90.36 ms</strong>.</p>
+        <div class="callout warning" style="margin-top:2vh">This showed that the service was saturated. It did not tell me whether the cause was CPU, database connections, or another shared resource.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" data-n="7">
+    <div class="eyebrow">Bottleneck investigation</div>
+    <h2>Testing the pool-size hypothesis</h2>
+    <div class="two">
+      <div>
+        <h3>PostgreSQL sampling</h3>
+        <p>One-second <span class="mono">pg_stat_activity</span> snapshots often showed idle connections.</p>
+        <div class="callout warning">The queries take milliseconds, so the sampler could easily miss short periods where every pooled connection was busy. I treated this result as inconclusive.</div>
+        <h3 style="margin-top:3vh">Pool comparison</h3>
+        <p>I kept the workload at 25 VUs and changed the pool limit from 10 to 20.</p>
+      </div>
+      <div class="three" style="grid-template-columns:1fr 1fr;align-items:stretch">
+        <div class="card"><div class="label">Pool 10</div><div class="big-number" style="margin-top:1.2vh">6,619</div><div class="label">requests/s</div><p style="margin-top:2vh"><strong>5.68 ms</strong><br><span class="small">overall p95</span></p></div>
+        <div class="card teal"><div class="label">Pool 20</div><div class="big-number" style="margin-top:1.2vh">10,086</div><div class="label">requests/s</div><p style="margin-top:2vh"><strong>4.45 ms</strong><br><span class="small">overall p95</span></p></div>
+      </div>
+    </div>
+    <div class="callout" style="margin-top:2.5vh">Throughput increased by <strong>52.4%</strong> and p95 fell by <strong>21.7%</strong>. That was enough evidence to continue testing pool sizes.</div>
+  </section>
+
+  <section class="slide" data-n="8">
+    <div class="eyebrow">Pool-size test · 50 VUs</div>
+    <h2>Choosing a pool size</h2>
+    <div class="two wide-left">
+      <div>
+        <table>
+          <thead><tr><th>Pool</th><th class="num">req/s</th><th class="num">overall p95</th><th class="num">PUT p95</th><th class="num">conflicts/s</th></tr></thead>
+          <tbody>
+            <tr><td>20</td><td class="num">8,509</td><td class="num">9.20 ms</td><td class="num">10.65 ms</td><td class="num">24</td></tr>
+            <tr><td>30</td><td class="num">8,588</td><td class="num">8.65 ms</td><td class="num">10.11 ms</td><td class="num">25</td></tr>
+            <tr class="highlight"><td>40</td><td class="num">10,028</td><td class="num">10.72 ms</td><td class="num">14.44 ms</td><td class="num">77</td></tr>
+            <tr><td>50</td><td class="num">10,131</td><td class="num">11.85 ms</td><td class="num">14.61 ms</td><td class="num">108</td></tr>
+          </tbody>
+        </table>
+        <p class="small" style="margin-top:1.2vh">50 VUs, one Node process. Expected 409s are included in request throughput and also tracked separately.</p>
+      </div>
+      <div>
+        <div class="big-number">1%</div><p>more throughput with pool 50</p>
+        <div class="big-number" style="margin-top:2vh">10</div><p>additional possible database connections</p>
+        <div class="callout warning" style="margin-top:2vh">Pool 50 also had higher overall latency and more conflicts. I chose pool 40 as the smallest setting close to the measured ceiling.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" data-n="9">
+    <div class="eyebrow">Full retest · one process, pool 40</div>
+    <h2>Pool 40 results</h2>
+    <table style="font-size:1.38vh">
+      <thead><tr><th>VUs</th><th class="num">req/s</th><th class="num">GET p50</th><th class="num">GET p95</th><th class="num">GET p99</th><th class="num">Infra errors</th><th class="num">Peak CPU</th><th class="num">Peak RSS</th></tr></thead>
+      <tbody>
+        <tr><td>10</td><td class="num">7,393</td><td class="num">0.88 ms</td><td class="num">2.15 ms</td><td class="num">6.49 ms</td><td class="num">0%</td><td class="num">93%</td><td class="num">211 MiB</td></tr>
+        <tr class="highlight"><td>25</td><td class="num">10,305</td><td class="num">1.67 ms</td><td class="num">3.02 ms</td><td class="num">4.04 ms</td><td class="num">0%</td><td class="num">97%</td><td class="num">215 MiB</td></tr>
+        <tr><td>50</td><td class="num">10,159</td><td class="num">3.74 ms</td><td class="num">6.07 ms</td><td class="num">8.48 ms</td><td class="num">0%</td><td class="num">105%</td><td class="num">207 MiB</td></tr>
+        <tr><td>100</td><td class="num">6,342</td><td class="num">15.01 ms</td><td class="num">20.92 ms</td><td class="num">23.00 ms</td><td class="num">0%</td><td class="num">109%</td><td class="num">287 MiB</td></tr>
+        <tr><td>200</td><td class="num">4,199</td><td class="num">46.49 ms</td><td class="num">63.59 ms</td><td class="num">79.29 ms</td><td class="num">0%</td><td class="num">105%</td><td class="num">331 MiB</td></tr>
+      </tbody>
+    </table>
+    <div class="callout" style="margin-top:2.5vh">25 VUs was the highest tested point before degradation. At 50 VUs, throughput was almost unchanged while GET p95 roughly doubled.</div>
+    <p class="small" style="margin-top:1.5vh">CPU and RSS came from two-second <span class="mono">ps</span> samples of the API process during the measured 60 seconds.</p>
+  </section>
+
+  <section class="slide" data-n="10">
+    <div class="eyebrow">Before and after · pool 10 vs pool 40</div>
+    <h2>What changed</h2>
+    <table>
+      <thead><tr><th>VUs</th><th class="num">Pool 10 req/s</th><th class="num">Pool 40 req/s</th><th class="num">Change</th><th class="num">Pool 10 GET p95</th><th class="num">Pool 40 GET p95</th></tr></thead>
+      <tbody><tr><td>10</td><td class="num">8,708</td><td class="num">7,393</td><td class="num bad">−15.1%</td><td class="num">1.33 ms</td><td class="num">2.15 ms</td></tr><tr class="highlight"><td>25</td><td class="num">7,298</td><td class="num">10,305</td><td class="num good">+41.2%</td><td class="num">4.82 ms</td><td class="num">3.02 ms</td></tr><tr><td>50</td><td class="num">4,396</td><td class="num">10,159</td><td class="num good">+131.1%</td><td class="num">15.31 ms</td><td class="num">6.07 ms</td></tr><tr><td>100</td><td class="num">3,373</td><td class="num">6,342</td><td class="num good">+88.1%</td><td class="num">40.20 ms</td><td class="num">20.92 ms</td></tr><tr><td>200</td><td class="num">2,860</td><td class="num">4,199</td><td class="num good">+46.8%</td><td class="num">90.36 ms</td><td class="num">63.59 ms</td></tr></tbody>
+    </table>
+    <div class="metric-row" style="margin-top:2.5vh">
+      <div class="card"><div class="big-number">+18%</div><div class="label">higher peak measured throughput</div></div>
+      <div class="card"><div class="big-number">25 → 50</div><div class="label">first observed degradation</div></div>
+      <div class="card"><div class="big-number">0%</div><div class="label">unexpected infrastructure errors</div></div>
+    </div>
+    <div class="callout warning">The 10-VU regression did not reproduce in a later repeat, so I treat that low-load difference as run-to-run variation.</div>
+  </section>
+
+  <section class="slide" data-n="11">
+    <div class="eyebrow">Interpretation</div>
+    <h2>Trade-offs, assumptions, and limits</h2>
+    <div class="two" style="align-items:start;flex:none">
+      <div class="card teal">
+        <h3>Trade-offs I made</h3>
+        <ul>
+          <li>Append-only versions preserve history, but use more storage and leave stale-edit handling unresolved.</li>
+          <li><span class="mono">409</span> prevents a silent overwrite, but still represents unsuccessful work for the user.</li>
+          <li>Pool 40 favored throughput. Pool 30 had lower latency, fewer conflicts, and used fewer connections.</li>
+          <li>The closed-loop workload finds saturation quickly, but is not representative user behavior.</li>
+        </ul>
+      </div>
+      <div class="card coral">
+        <h3>What limits the result</h3>
+        <ul>
+          <li>Small payloads, 50 hot notes, fixed 70/20/10 traffic, and no think time.</li>
+          <li>API, k6, and Dockerized PostgreSQL ran on one machine; there was no TLS, ingress, or authentication.</li>
+          <li>Most configurations have one 60-second measured run, so small differences may be noise.</li>
+          <li>One-second PostgreSQL samples can miss millisecond contention; pool wait and event-loop lag were not measured.</li>
+          <li>Throughput includes expected <span class="mono">409</span>s, so it is not identical to successful business work.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout" style="margin-top:2.2vh">The tests support a relative claim about this local setup. They do not establish production capacity, an exact saturation boundary, or a number of real users.</div>
+  </section>
+
+  <section class="slide" data-n="12">
+    <div class="eyebrow">Follow-up experiment · 200 VUs</div>
+    <h2>Two Node processes</h2>
+    <div class="two" style="align-items:start;flex:none">
+      <div class="card">
+        <div class="label">1 worker × pool 40</div><div class="big-number" style="margin-top:1.5vh">4,199</div><div class="label">requests/s</div>
+        <div class="metric-row" style="grid-template-columns:1fr 1fr;margin-top:3vh"><div><strong>63.8 ms</strong><br><span class="small">p95</span></div><div><strong>97%</strong><br><span class="small">CPU</span></div></div>
+      </div>
+      <div class="card teal">
+        <div class="label">2 workers × pool 20</div><div class="big-number" style="margin-top:1.5vh">11,734</div><div class="label">requests/s</div>
+        <div class="metric-row" style="grid-template-columns:1fr 1fr;margin-top:3vh"><div><strong>42.0 ms</strong><br><span class="small">p95</span></div><div><strong>177.5%</strong><br><span class="small">aggregate CPU</span></div></div>
+      </div>
+    </div>
+    <div class="callout warning" style="margin-top:2.5vh">This was one unpaired run against different database state. Memory increased by 31% and conflicts rose to about 188/s. It suggests a useful next test; it does not prove 2.8× scaling.</div>
+  </section>
+
+  <section class="slide" data-n="13">
+    <div class="eyebrow">Capacity</div>
+    <h2>What the test says</h2>
+    <div class="two wide-left" style="align-items:start">
+      <div>
+        <div class="quote"><span class="accent">25 VUs at about 10,300 req/s</span> was the highest tested point before degradation with one process and pool 40.</div>
+        <p style="margin-top:2.5vh">At 50 VUs, throughput was effectively flat while latency doubled. That is the first observed degradation point in the improved series.</p>
+        <p>At every tested level, unexpected infrastructure failures remained zero.</p>
+      </div>
+      <div class="card coral">
+        <h3>Test boundaries</h3>
+        <ul><li>Small, fixed payloads</li><li>50 cache-friendly notes</li><li>Local network</li><li>No TLS, authentication, or reverse proxy</li></ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" data-n="14">
+    <div class="eyebrow">Next improvements</div>
+    <h2>What I would do next</h2>
+    <ol class="step-list">
+      <li><div>Repeat the one-, two-, and four-process tests while keeping the total database connection limit fixed.</div></li>
+      <li><div>Measure pool wait time, event-loop lag, query duration, PostgreSQL waits, and each process separately.</div></li>
+      <li><div>Decide what should happen when two users update the same note before adding automatic retries.</div></li>
+      <li><div>Add request and query timeouts, bound pool waits, drain connections on shutdown, and test database failures.</div></li>
+      <li><div>Repeat with realistic note sizes and traffic, separate hosts, and an arrival-rate target tied to an actual latency objective.</div></li>
+    </ol>
+  </section>
+
+  <section class="slide title-slide" data-n="15">
+    <div class="eyebrow">Discussion</div>
+    <h1>Questions</h1>
+    <div class="title-rule"></div>
+    <p class="sub">The detailed results and scope decisions are in the appendix.</p>
+  </section>
+
+  <section class="slide appendix" data-n="A1">
+    <div class="eyebrow">Appendix</div><h2>Update conflicts</h2>
+    <div class="two">
+      <div><p>Ten percent of workload requests update one of only 50 seeded notes. Larger pools and more workers allow more of those updates to reach PostgreSQL concurrently.</p><div class="callout">A 409 is an expected, correctness-preserving response in this design. It is still unsuccessful business work and must not disappear inside aggregate throughput.</div></div>
+      <div class="card"><div class="big-number">~16%</div><div class="label">estimated PUT conflict share in the two-worker 200-VU experiment</div><p style="margin-top:2.5vh">This is why the next step is to define edit semantics before adding retries or serialization.</p></div>
+    </div>
+  </section>
+
+  <section class="slide appendix" data-n="A2">
+    <div class="eyebrow">Appendix</div><h2>Decisions made for this exercise</h2>
+    <div class="three cards">
+      <div class="card"><h3>Authentication</h3><p><span class="mono">authorId</span> is attribution supplied by the client, not verified identity.</p></div>
+      <div class="card"><h3>Production topology</h3><p>No ingress, TLS, separate hosts, autoscaling, or managed database.</p></div>
+      <div class="card"><h3>Product semantics</h3><p>No decision yet on stale-edit reconciliation, idempotency, retention, or deletion.</p></div>
+    </div>
+    <p style="margin-top:3vh">These are scope decisions for the take-home, not suggested production defaults.</p>
+  </section>
+</main>
+<script>
+  const slides = [...document.querySelectorAll('.slide')];
+  let index = 0;
+  function show(next) {
+    index = Math.max(0, Math.min(slides.length - 1, next));
+    slides.forEach((s, i) => s.classList.toggle('active', i === index));
+    document.getElementById('progress').style.width = `${((index + 1) / slides.length) * 100}%`;
+    history.replaceState(null, '', `#${index + 1}`);
+  }
+  addEventListener('keydown', e => {
+    if (['ArrowRight','PageDown',' '].includes(e.key)) { e.preventDefault(); show(index + 1); }
+    if (['ArrowLeft','PageUp'].includes(e.key)) { e.preventDefault(); show(index - 1); }
+    if (e.key === 'Home') show(0);
+    if (e.key === 'End') show(slides.length - 1);
+    if (e.key.toLowerCase() === 'f') document.documentElement.requestFullscreen?.();
+  });
+  const fromHash = Number(location.hash.slice(1));
+  show(Number.isFinite(fromHash) && fromHash > 0 ? fromHash - 1 : 0);
+</script>
+</body>
+</html>
